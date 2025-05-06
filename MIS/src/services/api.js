@@ -41,6 +41,9 @@ api.interceptors.response.use(
 export const authService = {
     login: async (credentials) => {
         const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
+        if (response.data.token) {
+            localStorage.setItem('token', response.data.token);
+        }
         return response.data;
     },
     logout: async () => {
@@ -59,8 +62,44 @@ export const userService = {
         const response = await api.get(API_ENDPOINTS.USER.PROFILE);
         return response.data;
     },
+    getAllUsers: async () => {
+        const response = await api.get(API_ENDPOINTS.USER.ALL);
+        return response.data;
+    },
     updateProfile: async (userData) => {
         const response = await api.put(API_ENDPOINTS.USER.UPDATE, userData);
+        return response.data;
+    },
+};
+
+// Area services
+export const areaService = {
+    getAllAreas: async () => {
+        const response = await api.get(API_ENDPOINTS.AREA.ALL);
+        return response.data;
+    },
+};
+
+// Branch services
+export const branchService = {
+    getAllBranches: async () => {
+        const response = await api.get(API_ENDPOINTS.BRANCH.ALL);
+        return response.data;
+    },
+};
+
+// Role services
+export const roleService = {
+    getAllRoles: async () => {
+        const response = await api.get(API_ENDPOINTS.ROLE.ALL);
+        return response.data;
+    },
+};
+
+// Report services
+export const reportService = {
+    getDailyReports: async () => {
+        const response = await api.get(API_ENDPOINTS.REPORT.DAILY);
         return response.data;
     },
 };
