@@ -1,17 +1,24 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5000';
 
 export const API_ENDPOINTS = {
     AUTH: {
-        LOGIN: `${API_BASE_URL}/auth/login`,
-        LOGOUT: `${API_BASE_URL}/auth/logout`,
-        REGISTER: `${API_BASE_URL}/auth/register`,
+        LOGIN: `${API_BASE_URL}/api/auth/login`,
     },
     USER: {
-        PROFILE: `${API_BASE_URL}/user/profile`,
-        UPDATE: `${API_BASE_URL}/user/update`,
+        PROFILE: `${API_BASE_URL}/api/user/profile`,
+        ALL: `${API_BASE_URL}/users`,
     },
-    DASHBOARD: {
-        STATS: `${API_BASE_URL}/dashboard/stats`,
+    AREA: {
+        ALL: `${API_BASE_URL}/areas`,
+    },
+    BRANCH: {
+        ALL: `${API_BASE_URL}/branches`,
+    },
+    ROLE: {
+        ALL: `${API_BASE_URL}/roles`,
+    },
+    REPORT: {
+        DAILY: `${API_BASE_URL}/daily-reports`,
     }
 };
 

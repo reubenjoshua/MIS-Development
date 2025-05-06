@@ -10,6 +10,7 @@ import {
   Skeleton
 } from '@mui/material';
 import { useUser } from '../contexts/UserContext';
+import { Link } from 'react-router-dom';
 
 const Sidebar = () => {
   const { user, loading } = useUser();
@@ -117,6 +118,8 @@ const Sidebar = () => {
               {section.items.map((item, itemIndex) => (
                 <ListItem key={itemIndex} disablePadding>
                   <ListItemButton
+                    component={Link}
+                    to={item.path}
                     sx={{
                       py: 0.75,
                       justifyContent: 'center',
