@@ -7,21 +7,38 @@ from dotenv import load_dotenv
 import jwt
 from functools import wraps
 import pyodbc
+from sqlalchemy import text
 
 # Load environment variables
 load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app, supports_credentials=True, resources={
-    r"/*": {
-        "origins": ["http://localhost:5173"],
+
+# Configure CORS
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:5173", "http://localhost:5174"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
+        "supports_credentials": True,
+        "max_age": 3600
     }
 })
+
+
+# Error handling middleware
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin in ["http://localhost:5173", "http://localhost:5174"]:
+        response.headers['Access-Control-Allow-Origin'] = origin
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
@@ -35,11 +52,11 @@ db = SQLAlchemy(app)
 
 
 # Test database connection
-@app.route('/test-db')
+@app.route('/api/test-db')
 def test_db():
     try:
         # Try to connect to the database
-        db.session.execute('SELECT 1')
+        db.session.execute(text('SELECT 1'))
         return jsonify({
             'status': 'success',
             'message': 'Database connection successful'
@@ -55,16 +72,16 @@ def test_db():
 class User(db.Model):
     __tablename__ = 'User'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=False)
-    roleId = db.Column(db.Integer, db.ForeignKey('Role.id'), nullable=False)
-    areaId = db.Column(db.Integer, db.ForeignKey('Area.id'), nullable=False)
-    branchId = db.Column(db.Integer, db.ForeignKey('Branch.id'), nullable=False)
-    monthlyEncoded = db.Column(db.Integer, nullable=False)
-    dailyEncoded = db.Column(db.Integer, nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    roleId = db.Column(db.Integer, db.ForeignKey('Role.id'))
+    areaId = db.Column(db.Integer, db.ForeignKey('Area.id'))
+    branchId = db.Column(db.Integer, db.ForeignKey('Branch.id'))
+    monthlyEncoded = db.Column(db.Integer)
+    dailyEncoded = db.Column(db.Integer)
     userName = db.Column(db.String(64))
     firstName = db.Column(db.String(64))
     lastName = db.Column(db.String(64))
-    email = db.Column(db.String(128))
+    email = db.Column(db.String(64))
     passwordHash = db.Column(db.String(64))
     isActive = db.Column(db.Boolean)
 
@@ -87,7 +104,7 @@ class User(db.Model):
 class Role(db.Model):
     __tablename__ = 'Role'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     roleName = db.Column(db.String(64))
     description = db.Column(db.String(256))
 
@@ -95,21 +112,123 @@ class Role(db.Model):
 class Area(db.Model):
     __tablename__ = 'Area'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     areaCode = db.Column(db.Integer, nullable=False)
     areaName = db.Column(db.String(64))
-    description = db.Column(db.String(256))
     isActive = db.Column(db.Boolean)
 
 
 class Branch(db.Model):
     __tablename__ = 'Branch'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     areaId = db.Column(db.Integer, db.ForeignKey('Area.id'))
     branchCode = db.Column(db.Integer)
     branchName = db.Column(db.String(64))
     isActive = db.Column(db.Boolean)
+
+
+class Daily(db.Model):
+    __tablename__ = 'Daily'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    monthlyId = db.Column(db.Integer, db.ForeignKey('Monthly.id'))
+    sourceType = db.Column(db.String(64))
+    sourceName = db.Column(db.String(64))
+    status = db.Column(db.String(32))
+    byUser = db.Column(db.Integer, db.ForeignKey('User.id'))
+    date = db.Column(db.DateTime)
+    productionVolume = db.Column(db.Float)
+    operationHours = db.Column(db.Float)
+    serviceInterruption = db.Column(db.Boolean)
+    totalHoursServiceInterruption = db.Column(db.Float)
+    electricityConsumption = db.Column(db.Float)
+    VFDFrequency = db.Column(db.Float)
+    spotFlow = db.Column(db.Float)
+    spotPressure = db.Column(db.Float)
+    timeSpotMeasurements = db.Column(db.DateTime)
+    lineVoltage1 = db.Column(db.Float)
+    lineVoltage2 = db.Column(db.Float)
+    lineVoltage3 = db.Column(db.Float)
+    lineCurrent1 = db.Column(db.Float)
+    lineCurrent2 = db.Column(db.Float)
+    lineCurrent3 = db.Column(db.Float)
+    comment = db.Column(db.String(512))
+    isActive = db.Column(db.Boolean)
+
+
+class Monthly(db.Model):
+    __tablename__ = 'Monthly'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    branchId = db.Column(db.Integer, db.ForeignKey('Branch.id'))
+    sourceType = db.Column(db.Integer, db.ForeignKey('sourceType.id'))
+    sourceName = db.Column(db.Integer)
+    status = db.Column(db.Integer, db.ForeignKey('Status.id'))
+    byUser = db.Column(db.Integer)
+    month = db.Column(db.String(32))
+    year = db.Column(db.Integer)
+    electricityConsumption = db.Column(db.Float)
+    electricityCost = db.Column(db.Float)
+    bulkCost = db.Column(db.Float)
+    bulkOuttake = db.Column(db.Float)
+    bulkProvider = db.Column(db.Float)
+    WTPCost = db.Column(db.Float)
+    WTPSource = db.Column(db.Float)
+    WTPVolume = db.Column(db.Float)
+    disinfectionMode = db.Column(db.String(128))
+    disinfectantCost = db.Column(db.Float)
+    disinfectionAmount = db.Column(db.Float)
+    disinfectionBrandType = db.Column(db.String(128))
+    otherTreatmentCost = db.Column(db.Float)
+    emergencyLitersConsumed = db.Column(db.Float)
+    emergencyFuelCost = db.Column(db.Float)
+    emergencyTotalHoursUsed = db.Column(db.Float)
+    gensetLitersConsumed = db.Column(db.Float)
+    gensetFuelCost = db.Column(db.Float)
+    isActive = db.Column(db.Boolean)
+    comment = db.Column(db.String(1024))
+
+
+class SourceType(db.Model):
+    __tablename__ = 'sourceType'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    branchId = db.Column(db.Integer, db.ForeignKey('Branch.id'))
+    sourceType = db.Column(db.String(64))
+    isActive = db.Column(db.Boolean)
+
+
+class SourceName(db.Model):
+    __tablename__ = 'sourceName'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    branchId = db.Column(db.Integer, db.ForeignKey('Branch.id'))
+    sourceTypeId = db.Column(db.Integer, db.ForeignKey('sourceType.id'))
+    sourceName = db.Column(db.String(64))
+    isActive = db.Column(db.Boolean)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'branchId': self.branchId,
+            'sourceTypeId': self.sourceTypeId,
+            'sourceName': self.sourceName,
+            'isActive': self.isActive
+        }
+
+
+class Status(db.Model):
+    __tablename__ = 'Status'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    statusName = db.Column(db.String(16))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'statusName': self.statusName
+        }
 
 
 # Authentication decorator
@@ -133,20 +252,21 @@ def token_required(f):
 
 
 # Routes
-@app.route('/')
+@app.route('/api')
 def home():
     return jsonify({
         "message": "Welcome to the API",
         "version": "1.0.0",
         "endpoints": {
-            "test_db": "/test-db",
+            "test_db": "/api/test-db",
             "login": "/api/auth/login",
             "profile": "/api/user/profile",
-            "users": "/users",
-            "areas": "/areas",
-            "branches": "/branches",
-            "roles": "/roles",
-            "daily_reports": "/daily-reports"
+            "users": "/api/users",
+            "areas": "/api/areas",
+            "branches": "/api/branches",
+            "roles": "/api/roles",
+            "daily": "/api/daily",
+            "monthly": "/api/monthly"
         }
     })
 
@@ -181,6 +301,43 @@ def login():
         return jsonify({'message': f'Login failed: {str(e)}'}), 500
 
 
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    required_fields = ['userName', 'firstName', 'lastName', 'email', 'password', 'roleId', 'areaId', 'branchId']
+    if not all(field in data and data[field] for field in required_fields):
+        return jsonify({'message': 'Missing required fields'}), 400
+
+    # Check if username or email already exists
+    if User.query.filter_by(userName=data['userName']).first():
+        return jsonify({'message': 'Username already exists'}), 400
+    if User.query.filter_by(email=data['email']).first():
+        return jsonify({'message': 'Email already exists'}), 400
+
+    # Create new user
+    new_user = User(
+        userName=data['userName'],
+        firstName=data['firstName'],
+        lastName=data['lastName'],
+        email=data['email'],
+        passwordHash=data['password'],  # In production, hash the password!
+        roleId=data['roleId'],
+        areaId=data['areaId'],
+        branchId=data['branchId'],
+        isActive=True,
+        monthlyEncoded=None,  # Set to NULL initially (AS OF NOW NULL, NEED IBALIK SA 0)
+        dailyEncoded=None  # Set to NULL initially (AS OF NOW NULL, NEED IBALIK SA 0)
+    )
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({'message': 'User created successfully', 'user': new_user.to_dict()}), 201
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating user: {str(e)}")  # Add logging
+        return jsonify({'message': f'Failed to create user: {str(e)}'}), 500
+
+
 # User routes
 @app.route('/api/user/profile', methods=['GET'])
 @token_required
@@ -191,35 +348,92 @@ def get_profile(current_user):
         return jsonify({'message': f'Failed to get profile: {str(e)}'}), 500
 
 
-@app.route('/users', methods=['GET'])
+@app.route('/api/users', methods=['GET'])
 @token_required
 def get_all_users(current_user):
     try:
         users = User.query.all()
+        app.logger.info(f"Found {len(users)} users")
         return jsonify([user.to_dict() for user in users])
     except Exception as e:
+        app.logger.error(f"Error in get_all_users: {str(e)}")
         return jsonify({'message': f'Failed to get users: {str(e)}'}), 500
 
 
 # Area routes
-@app.route('/areas', methods=['GET'])
+@app.route('/api/areas', methods=['GET'])
 @token_required
 def get_all_areas(current_user):
     try:
+        # Add debug logging
+        app.logger.info("Attempting to fetch areas...")
+
+        # First check if the Area table exists
+        try:
+            db.session.execute(text("SELECT TOP 1 * FROM Area"))
+            app.logger.info("Area table exists and is accessible")
+        except Exception as table_error:
+            app.logger.error(f"Error accessing Area table: {str(table_error)}")
+            return jsonify({'message': f'Database table error: {str(table_error)}'}), 500
+
+        # Try to get areas
         areas = Area.query.filter_by(isActive=True).all()
-        return jsonify([{
+        app.logger.info(f"Successfully found {len(areas)} active areas")
+
+        # Convert to dictionary and return
+        area_list = [{
             'id': area.id,
             'areaCode': area.areaCode,
             'areaName': area.areaName,
-            'description': area.description,
             'isActive': area.isActive
-        } for area in areas])
+        } for area in areas]
+
+        app.logger.info("Successfully converted areas to JSON format")
+        return jsonify(area_list)
+
     except Exception as e:
+        app.logger.error(f"Error in get_all_areas: {str(e)}")
+        app.logger.error(f"Error type: {type(e)}")
+        import traceback
+        app.logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({'message': f'Failed to get areas: {str(e)}'}), 500
 
 
+# Add a test endpoint for areas
+@app.route('/api/test-areas', methods=['GET'])
+def test_areas():
+    try:
+        # Try to get the first area without any filters
+        area = Area.query.first()
+        if area:
+            return jsonify({
+                'status': 'success',
+                'message': 'Successfully found an area',
+                'area': {
+                    'id': area.id,
+                    'areaCode': area.areaCode,
+                    'areaName': area.areaName,
+                    'isActive': area.isActive
+                }
+            })
+        else:
+            return jsonify({
+                'status': 'success',
+                'message': 'No areas found in database',
+                'area': None
+            })
+    except Exception as e:
+        app.logger.error(f"Error in test_areas: {str(e)}")
+        import traceback
+        app.logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Error testing areas: {str(e)}'
+        }), 500
+
+
 # Branch routes
-@app.route('/branches', methods=['GET'])
+@app.route('/api/branches', methods=['GET'])
 @token_required
 def get_all_branches(current_user):
     try:
@@ -235,7 +449,8 @@ def get_all_branches(current_user):
         return jsonify({'message': f'Failed to get branches: {str(e)}'}), 500
 
 
-@app.route('/roles', methods=['GET'])
+# Role routes
+@app.route('/api/roles', methods=['GET'])
 @token_required
 def get_all_roles(current_user):
     try:
@@ -249,25 +464,138 @@ def get_all_roles(current_user):
         return jsonify({'message': f'Failed to get roles: {str(e)}'}), 500
 
 
-@app.route('/daily-reports', methods=['GET'])
+# Daily routes
+@app.route('/api/daily', methods=['GET'])
 @token_required
-def get_daily_reports(current_user):
+def get_all_daily(current_user):
     try:
-        # Mock daily reports data
+        # Use SQLAlchemy model instead of raw SQL
+        daily_reports = db.session.query(Daily).all()
+        return jsonify([{
+            'id': report.id,
+            'monthlyId': report.monthlyId,
+            'sourceType': report.sourceType,
+            'sourceName': report.sourceName,
+            'status': report.status,
+            'byUser': report.byUser,
+            'date': report.date,
+            'productionVolume': report.productionVolume,
+            'operationHours': report.operationHours,
+            'serviceInterruption': report.serviceInterruption,
+            'totalHoursServiceInterruption': report.totalHoursServiceInterruption,
+            'electricityConsumption': report.electricityConsumption,
+            'VFDFrequency': report.VFDFrequency,
+            'spotFlow': report.spotFlow,
+            'spotPressure': report.spotPressure,
+            'timeSpotMeasurements': report.timeSpotMeasurements,
+            'lineVoltage1': report.lineVoltage1,
+            'lineVoltage2': report.lineVoltage2,
+            'lineVoltage3': report.lineVoltage3,
+            'lineCurrent1': report.lineCurrent1,
+            'lineCurrent2': report.lineCurrent2,
+            'lineCurrent3': report.lineCurrent3,
+            'comment': report.comment,
+            'isActive': report.isActive
+        } for report in daily_reports])
+    except Exception as e:
+        app.logger.error(f"Error in get_all_daily: {str(e)}")
+        return jsonify({'message': f'Failed to get daily reports: {str(e)}'}), 500
+
+
+@app.route('/api/debug-counts')
+def debug_counts():
+    try:
+        users = User.query.all()
+        areas = Area.query.all()
+        branches = Branch.query.all()
         return jsonify({
-            'message': 'Daily reports retrieved successfully',
-            'data': [
-                {
-                    'id': 1,
-                    'date': datetime.now().strftime('%Y-%m-%d'),
-                    'area': 'JV',
-                    'branch': 'Lipa',
-                    'status': 'Completed'
-                }
-            ]
+            "users": [u.to_dict() for u in users],
+            "areas": [{"id": a.id, "areaCode": a.areaCode, "areaName": a.areaName, "isActive": a.isActive} for a in
+                      areas],
+            "branches": [{"id": b.id, "areaId": b.areaId, "branchCode": b.branchCode, "branchName": b.branchName,
+                          "isActive": b.isActive} for b in branches]
         })
     except Exception as e:
-        return jsonify({'message': f'Failed to get daily reports: {str(e)}'}), 500
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()})
+
+
+# Status routes
+@app.route('/api/status', methods=['GET'])
+@token_required
+def get_all_status(current_user):
+    statuses = Status.query.all()
+    return jsonify([s.to_dict() for s in statuses])
+
+
+# SourceType routes
+@app.route('/api/source-types', methods=['GET'])
+@token_required
+def get_all_source_types(current_user):
+    items = SourceType.query.all()
+    return jsonify([item.to_dict() for item in items])
+
+
+# SourceName routes
+@app.route('/api/source-names', methods=['GET'])
+@token_required
+def get_all_source_names(current_user):
+    items = SourceName.query.all()
+    return jsonify([item.to_dict() for item in items])
+
+@app.route('/api/source-names', methods=['POST'])
+@token_required
+def create_source_name(current_user):
+    data = request.get_json()
+    new_source_name = SourceName(
+        branchId=data['branchId'],
+        sourceTypeId=data['sourceTypeId'],
+        sourceName=data['sourceName'],
+        isActive=data['isActive', True]
+    )
+    db.session.add(new_source_name)
+    db.session.commit()
+    return jsonify(new_source_name.to_dict()), 201
+
+# Monthly routes
+@app.route('/api/monthly', methods=['GET'])
+@token_required
+def get_all_monthly(current_user):
+    items = Monthly.query.all()
+
+    def monthly_to_dict(m):
+        return {
+            'id': m.id,
+            'branchId': m.branchId,
+            'sourceType': m.sourceType,
+            'sourceName': m.sourceName,
+            'status': m.status,
+            'byUser': m.byUser,
+            'month': m.month,
+            'year': m.year,
+            'electricityConsumption': m.electricityConsumption,
+            'electricityCost': m.electricityCost,
+            'bulkCost': m.bulkCost,
+            'bulkOuttake': m.bulkOuttake,
+            'bulkProvider': m.bulkProvider,
+            'WTPCost': m.WTPCost,
+            'WTPSource': m.WTPSource,
+            'WTPVolume': m.WTPVolume,
+            'disinfectionMode': m.disinfectionMode,
+            'disinfectantCost': m.disinfectantCost,
+            'disinfectionAmount': m.disinfectionAmount,
+            'disinfectionBrandType': m.disinfectionBrandType,
+            'otherTreatmentCost': m.otherTreatmentCost,
+            'emergencyLitersConsumed': m.emergencyLitersConsumed,
+            'emergencyFuelCost': m.emergencyFuelCost,
+            'emergencyTotalHoursUsed': m.emergencyTotalHoursUsed,
+            'gensetLitersConsumed': m.gensetLitersConsumed,
+            'gensetFuelCost': m.gensetFuelCost,
+            'isActive': m.isActive,
+            'comment': m.comment
+        }
+
+    return jsonify([monthly_to_dict(m) for m in items])
 
 
 if __name__ == '__main__':
