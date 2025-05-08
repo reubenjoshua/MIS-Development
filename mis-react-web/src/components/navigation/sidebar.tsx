@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { mockRoles, mockBranch, mockLoginAPI, mockFetchUserDetails } from "@/mocks/mockAPI";
 
-import { useAuth } from "../../context/useAuth";
+import { useAuth } from "../../context/AuthContext";
 import { RoleType, UserProfile, BranchType } from "@/models/User";
 
 interface NavItems
@@ -71,13 +71,15 @@ export default function Sidebar ()
     { return <div className = "">No user loaded</div>; }
 
     // const roleItems = navSections.filter (item => item.roleID.includes (user?.Role));
-    const roleName = mockRoles.find (role => role.ID === user.Role)?.roleName || null;
-    const branchName = (user as any).Branch || null;
+    const roleName = user.roleName || 'User';
+    const branchName = user.branchName || 'No Branch';
 
     return (
         <div className = "sidebar-items-Container flex flex-col justify-between h-full">
             <div className = "main-div-1 user-Information flex flex-col">
-                <h1 className = "self-center">Hello {user.Username}!</h1>
+                <h1 className = "self-center">
+                    Hello {user.username && user.username.trim() !== "" ? user.username : "User"}!
+                </h1>
                 <h3 className = "self-center">{roleName}</h3>
                 <h3 className = "self-center">{branchName}</h3>
             </div>
@@ -86,7 +88,7 @@ export default function Sidebar ()
                 <ul>
                     {
                         navSections.map ((section) => {
-                            const visibleItems = section.items.filter (item => item.roleID.includes (user.Role));
+                            const visibleItems = section.items.filter (item => item.roleID.includes (user.roleId));
 
                             if (visibleItems.length === 0)
                             { return null; }
