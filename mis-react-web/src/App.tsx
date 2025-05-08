@@ -9,7 +9,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './index.css';
 
-import { UserProvider } from "./context/useAuth";
+import { AuthProvider } from "./context/AuthContext";
 
 // ROUTES
 import ProtectedRoutes    from "./routes/protectedRoutes";
@@ -34,47 +34,47 @@ import ManageProfile      from "./pages/profile";
 const App = () => {
   const NoUserPage = () => (
     <>
-      <UserProvider>
+      <AuthProvider>
         <Outlet />
         <ToastContainer />
-      </UserProvider>
+      </AuthProvider>
     </>
   );
 
   const WithNavigation = () => (
     <>
-      <UserProvider>
+      <AuthProvider>
         <Layout />
         <ToastContainer />
-      </UserProvider>
+      </AuthProvider>
     </>
   );
 
-  const routers = createBrowserRouter ([
+  const routers = createBrowserRouter([
     {
       element: <NoUserPage />,
       children: [
         {
-          path:     '/',
-          element:  <Navigate to = "/mis" />
+          path: '/',
+          element: <Navigate to="/mis" />
         },
         {
-          path:     '/mis',
+          path: '/mis',
           element:
             <UnprotectedRoutes>
               <Login />
             </UnprotectedRoutes>
         },
         {
-          path:     '/mis/login',
+          path: '/mis/login',
           element:
             <UnprotectedRoutes>
               <Login />
             </UnprotectedRoutes>
         },
         {
-          path:     '*',
-          element:  <PageNotFound />
+          path: '*',
+          element: <PageNotFound />
         },
       ],
     },
@@ -82,56 +82,56 @@ const App = () => {
       element: <WithNavigation />,
       children: [
         {
-          path:     '/mis/dashboard',
+          path: '/mis/dashboard',
           element:
             <ProtectedRoutes>
               <DashboardPage />
             </ProtectedRoutes>
         },
         {
-          path:     '/mis/manage-user',
+          path: '/mis/manage-user',
           element:
             <ProtectedRoutes>
               <ManageUser />
             </ProtectedRoutes>
         },
         {
-          path:   '/mis/manage-branch',
+          path: '/mis/manage-branch',
           element:
             <ProtectedRoutes>
               <ManageBranch />
             </ProtectedRoutes>
         },
         {
-          path:   '/mis/monthly',
+          path: '/mis/monthly',
           element:
             <ProtectedRoutes>
               <Monthly />
             </ProtectedRoutes>
         },
         {
-          path:   '/mis/daily',
+          path: '/mis/daily',
           element:
             <ProtectedRoutes>
               <Daily />
             </ProtectedRoutes>
         },
         {
-          path:   '/mis/approve-data',
+          path: '/mis/approve-data',
           element:
             <ProtectedRoutes>
               <ApproveData />
             </ProtectedRoutes>
         },
         {
-          path:   '/mis/status',
+          path: '/mis/status',
           element:
             <ProtectedRoutes>
               <DataStatus />
             </ProtectedRoutes>
         },
         {
-          path:   '/mis/profile',
+          path: '/mis/profile',
           element:
             <ProtectedRoutes>
               <ManageProfile />
@@ -141,7 +141,7 @@ const App = () => {
     }
   ]);
 
-  return ( <RouterProvider router = {routers}/> );
+  return <RouterProvider router={routers} />;
 };
 
 export default App;

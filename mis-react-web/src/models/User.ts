@@ -4,8 +4,8 @@ export type UserToken = {
 }
 
 export type UserLogin = {
-    Username:   string;
-    Password:   string;
+    username: string;
+    password: string;
 }
 
 export type UserRegistrationModel = {
