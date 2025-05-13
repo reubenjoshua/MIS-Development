@@ -29,6 +29,8 @@ VALUES
     (2, 'JV', 1),
     (3, 'FPR', 1); 
 	
+	USE MISDb
+	GO
 	SELECT * FROM Area
 
 CREATE TABLE Branch (
@@ -45,7 +47,8 @@ VALUES
     (1, 101, 'Batangas', 1),
     (2, 102, 'Lipa', 1),
     (3, 103, 'Taguig', 1); 
-
+	USE MISDb
+	GO
 	SELECT * FROM Branch
 
 CREATE TABLE [User] (
@@ -189,6 +192,8 @@ VALUES
     (3, 'WTP', 1),
     (3, 'Booster', 1);
 
+	USE MISDb
+	GO
 	SELECT * FROM sourceType
 
 CREATE TABLE sourceName (
@@ -200,6 +205,10 @@ CREATE TABLE sourceName (
 	FOREIGN KEY (branchId) REFERENCES Branch(id),
 	FOREIGN KEY (sourceTypeId) REFERENCES sourceType(id)
 );
+
+USE MISDb
+GO
+SELECT * FROM sourceName
 
 INSERT INTO sourceName (branchId, sourceTypeId, sourceName, isActive)
 VALUES 
@@ -385,3 +394,88 @@ VALUES
     'Routine maintenance', 1);
 
 	SELECT * FROM Daily
+
+	CREATE TABLE branchSource (
+		id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+		branchId INT,
+		sourceTypeId INT,
+		FOREIGN KEY (branchId) REFERENCES Branch(id),
+		FOREIGN KEY (sourceTypeId) REFERENCES sourceType(id)
+	);
+
+	SELECT * FROM branchSource
+	
+	ALTER TABLE branchSource
+	ADD isActive BIT
+
+	ALTER TABLE branchSource
+	ADD areaId INT
+
+	ALTER TABLE branchSource
+	ADD CONSTRAINT FK_branchSource_area FOREIGN KEY (areaId) REFERENCES Area(id)
+
+	CREATE TABLE branchSourceName (
+		id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+		branchId INT,
+		sourceNameId INT,
+		FOREIGN KEY (branchId) REFERENCES Branch(id),
+		FOREIGN KEY (sourceNameId) REFERENCES sourceName(id)
+	);
+
+	SELECT * FROM branchSourceName
+
+	ALTER TABLE branchSourceName
+	ADD isActive BIT
+
+	ALTER TABLE branchSourceName
+	ADD areaId INT
+
+	ALTER TABLE branchSourceName
+	ADD CONSTRAINT FK_branchSourceName_area FOREIGN KEY (areaId) REFERENCES Area(id)
+
+
+	
+
+	DELETE FROM Daily
+	DBCC CHECKIDENT ('Daily', RESEED, 0)
+	DELETE FROM sourceName;
+	DBCC CHECKIDENT ('sourceName', RESEED, 0)
+	DELETE FROM sourceType;
+	DBCC CHECKIDENT ('sourceType', RESEED, 0)
+
+	INSERT INTO sourceType (sourceType, isActive) VALUES
+('Deep Well - Electric', 1),
+('Deep Well - Genset Operated', 1),
+('Shallow Well', 1),
+('Spring - Gravity', 1),
+('Spring - Power-driven', 1),
+('Bulk', 1),
+('WTP', 1),
+('Booster', 1);
+
+UPDATE branchSource
+   SET areaId = b.areaId
+   FROM branchSource bs
+   JOIN Branch b ON bs.branchId = b.id
+   WHERE bs.areaId IS NULL;
+
+    SELECT id, areaId FROM Branch WHERE id IN (34, 35, 36);
+
+	ALTER TABLE branchSourceName 
+	ALTER COLUMN areaId INT NOT NULL;
+
+	SELECT bsn.*
+FROM branchSourceName bsn
+LEFT JOIN Branch b ON bsn.branchId = b.id
+WHERE b.id IS NULL;
+
+DELETE bsn
+FROM branchSourceName bsn
+LEFT JOIN Branch b ON bsn.branchId = b.id
+WHERE b.id IS NULL;
+
+UPDATE branchSourceName
+SET areaId = (
+    SELECT areaId FROM Branch WHERE Branch.id = branchSourceName.branchId
+)
+WHERE areaId IS NULL;
