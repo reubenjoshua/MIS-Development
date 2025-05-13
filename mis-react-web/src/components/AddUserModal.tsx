@@ -40,13 +40,13 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               <option key={role.id} value={role.id}>{role.roleName}</option>
             ))}
           </select>
-          <select name="branch" value={form.branch} onChange={handleInput} className="rounded px-2 py-1 border" required>
+          <select name="branch" value={form.branch} onChange={handleInput} className="rounded px-2 py-1 border" >
             <option value="">Branch</option>
             {branches.map((branch) => (
               <option key={branch.id} value={branch.id}>{branch.branchName}</option>
             ))}
           </select>
-          <select name="area" value={form.area} onChange={handleInput} className="rounded px-2 py-1 border" required>
+          <select name="area" value={form.area} onChange={handleInput} className="rounded px-2 py-1 border" >
             <option value="">Area</option>
             {areas.map((area) => (
               <option key={area.id} value={area.id}>{area.areaName}</option>

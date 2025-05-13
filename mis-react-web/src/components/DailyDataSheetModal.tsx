@@ -1,105 +1,71 @@
-import React from "react";
+import React from 'react';
+import { DailyForm, MonthlyForm } from '../types/branch';
 
 interface DatasheetModalProps {
   show: boolean;
   title: string;
-  fieldsList: string[];
-  fields: { [key: string]: boolean };
-  setFields: (fields: { [key: string]: boolean }) => void;
+  fields: DailyForm | MonthlyForm;
+  setFields: (fields: DailyForm | MonthlyForm) => void;
   onPrevious: () => void;
   onNext: () => void;
   onClose: () => void;
-  // Optional props for source type dropdown
-  sourceTypes?: string[];
-  selectedSourceType?: string;
-  setSelectedSourceType?: (type: string) => void;
 }
 
 const DatasheetModal: React.FC<DatasheetModalProps> = ({
   show,
   title,
-  fieldsList,
   fields,
   setFields,
   onPrevious,
   onNext,
   onClose,
-  sourceTypes,
-  selectedSourceType,
-  setSelectedSourceType,
 }) => {
   if (!show) return null;
 
-  const handleCheckbox = (field: string) => {
-    setFields({ ...fields, [field]: !fields[field] });
+  const handleFieldChange = (fieldName: string) => {
+    setFields({
+      ...fields,
+      [fieldName]: !fields[fieldName as keyof typeof fields]
+    });
   };
-
-  // Split fields for two-column layout
-  const mid = Math.ceil(fieldsList.length / 2);
-  const leftFields = fieldsList.slice(0, mid);
-  const rightFields = fieldsList.slice(mid);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-      <div className="bg-gray-200 rounded-xl p-8 w-full max-w-2xl shadow-lg relative">
-        <div className="text-left mb-2">Edit Branch</div>
+      <div className="bg-white p-6 rounded-lg w-full max-w-2xl relative">
         <h2 className="text-2xl font-semibold text-center mb-6">{title}</h2>
-        {sourceTypes && setSelectedSourceType && (
-          <div className="flex justify-center mb-4">
-            <select
-              className="rounded px-2 py-1 border"
-              value={selectedSourceType || ""}
-              onChange={e => setSelectedSourceType(e.target.value)}
-            >
-              <option value="">Source Type</option>
-              {sourceTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div className="flex flex-wrap gap-x-12 gap-y-2 justify-center mb-6">
-          <div>
-            {leftFields.map(field => (
-              <div key={field}>
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={fields[field] || false}
-                    onChange={() => handleCheckbox(field)}
-                    className="mr-2"
-                  />
-                  {field}
+        <div className="grid grid-cols-2 gap-4">
+          {Object.entries(fields).map(([key, value]) => {
+            // Skip sourceType and sourceName fields as they're handled separately
+            if (key === 'sourceType' || key === 'sourceName') return null;
+            
+            return (
+              <div key={key} className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={key}
+                  checked={value as boolean}
+                  onChange={() => handleFieldChange(key)}
+                  className="mr-2"
+                />
+                <label htmlFor={key} className="capitalize">
+                  {key.replace(/([A-Z])/g, ' $1').trim()}
                 </label>
               </div>
-            ))}
-          </div>
-          <div>
-            {rightFields.map(field => (
-              <div key={field}>
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={fields[field] || false}
-                    onChange={() => handleCheckbox(field)}
-                    className="mr-2"
-                  />
-                  {field}
-                </label>
-              </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
-        <div className="flex justify-center gap-6">
+        <div className="flex justify-between mt-6">
           <button
-            className="bg-gray-800 text-white px-8 py-2 rounded-lg hover:bg-gray-900 transition"
+            type="button"
             onClick={onPrevious}
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
           >
             Previous
           </button>
           <button
-            className="bg-green-600 text-white px-8 py-2 rounded-lg hover:bg-green-700 transition"
+            type="button"
             onClick={onNext}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
           >
             Next
           </button>
