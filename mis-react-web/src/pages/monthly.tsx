@@ -1,12 +1,10 @@
 import React from "react";
-
+import MonthlyCollectionSheet  from "../components/MonthlyCollectionSheet";
 export default function Monthly ()
 {
     return (
-        <main className = "">
-            <div className = "">
-                <h1>Monthly Datasheet</h1>
-            </div>
+        <main className="">
+            <MonthlyCollectionSheet />
         </main>
     );
 }

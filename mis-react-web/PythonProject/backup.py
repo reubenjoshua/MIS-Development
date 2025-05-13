@@ -331,9 +331,21 @@ def login():
 @app.route('/api/auth/register', methods=['POST'])
 def register():
     data = request.get_json()
-    required_fields = ['userName', 'firstName', 'lastName', 'email', 'password', 'roleId', 'areaId', 'branchId']
-    if not all(field in data and data[field] for field in required_fields):
-        return jsonify({'message': 'Missing required fields'}), 400
+    print("Received registration data:", data)  # For debugging
+
+    required_fields = ['userName', 'firstName', 'lastName', 'email', 'password', 'roleId']
+    for field in required_fields:
+        # Only check for empty string on string fields
+        if field not in data or (isinstance(data[field], str) and not data[field].strip()):
+            return jsonify({'message': f'Missing or empty required field: {field}'}), 400
+
+    # areaId and branchId are optional
+    area_id = data.get('areaId')
+    if area_id in [None, '', 'null', 0, '0']:
+        area_id = None
+    branch_id = data.get('branchId')
+    if branch_id in [None, '', 'null', 0, '0']:
+        branch_id = None
 
     # Check if username or email already exists
     if User.query.filter_by(userName=data['userName']).first():
@@ -349,11 +361,11 @@ def register():
         email=data['email'],
         passwordHash=data['password'],  # In production, hash the password!
         roleId=data['roleId'],
-        areaId=data['areaId'],
-        branchId=data['branchId'],
+        areaId=area_id,
+        branchId=branch_id,
         isActive=True,
-        monthlyEncoded=None,  # Set to NULL initially (AS OF NOW NULL, NEED IBALIK SA 0)
-        dailyEncoded=None  # Set to NULL initially (AS OF NOW NULL, NEED IBALIK SA 0)
+        monthlyEncoded=None,
+        dailyEncoded=None
     )
     try:
         db.session.add(new_user)
@@ -361,7 +373,7 @@ def register():
         return jsonify({'message': 'User created successfully', 'user': new_user.to_dict()}), 201
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Error creating user: {str(e)}")  # Add logging
+        app.logger.error(f"Error creating user: {str(e)}")
         return jsonify({'message': f'Failed to create user: {str(e)}'}), 500
 
 
@@ -664,6 +676,7 @@ def create_full_branch(current_user):
     for sn in source_names:
         new_source_name = SourceName(
             branchId=new_branch.id,
+            sourceTypeId=sn.get('sourceTypeId'),
             sourceName=sn['sourceName'],
             isActive=True
         )
@@ -730,6 +743,20 @@ def create_full_branch(current_user):
     db.session.commit()
     return jsonify({"message": "Branch and related data created successfully", "branchId": new_branch.id}), 201
 
+@app.route('/api/dashboard-stats', methods=['GET'])
+@token_required
+def dashboard_stats(current_user):
+    active_users = User.query.filter_by(isActive=True).count()
+    areas = Area.query.count()
+    branches = Branch.query.count()
+    approved = 0  # Replace with your own logic if needed
+
+    return jsonify({
+        "ActiveUsers": active_users,
+        "Areas": areas,
+        "Branches": branches,
+        "Approved": approved,
+    })
 
 if __name__ == '__main__':
     print("\n=== Starting Flask Server ===")
